@@ -93,16 +93,37 @@ Service nào gọi đến service này?
 Có thể vẽ bằng Mermaid, draw.io, Ludichart hoặc ảnh chụp sơ đồ.
 
 ```mermaid
-flowchart TD
-    Customer[Khách hàng] -->|Đăng ký/Đăng nhập| UserService[User Management Service]
-    Admin[Quản trị viên] -->|Quản lý tài khoản| UserService
-    OtherServices[Hệ thống khác] -->|Xác thực| UserService
+flowchart TB
+    Customer[Khách hàng]
+    Admin[Quản trị viên]
+    OtherSystem[Hệ thống khác]
     
-    UserService -->|Lưu trữ dữ liệu| UserDB[(User Database)]
-    UserService -->|Gửi email xác nhận| EmailService[Email Service]
-    UserService -->|Gửi thông báo| NotificationService[Notification Service]
-    
-    APIGateway[API Gateway] -->|Chuyển tiếp yêu cầu| UserService
-    OrderService[Order Service] -->|Lấy thông tin user| UserService
-    ProductService[Product Service] -->|Kiểm tra quyền| UserService
+    %% Traefik là Gateway thực tế trong scripts/pull_all.sh
+    APIGateway[Traefik API Gateway]
+
+    subgraph UserBoundary [User Management Service Boundary]
+        UserService[User Management Service]
+        %% PostgreSQL là DB thực tế trong scripts/pull_all.sh
+        UserDB[(PostgreSQL Database)]
+        UserService -->|Lưu trữ dữ liệu| UserDB
+    end
+
+    OrderService[Order Service]
+    ProductService[Product Service]
+    EmailService[Email Service]
+    NotificationService[Notification Service]
+
+    %% Tương tác từ phía người dùng qua Gateway
+    Customer -->|Đăng ký / Đăng nhập| APIGateway
+    Admin -->|Quản lý tài khoản| APIGateway
+    APIGateway --> UserService
+
+    %% Tương tác giữa các Service
+    OtherSystem -->|Xác thực| UserService
+    OrderService -->|Lấy thông tin user| UserService
+    ProductService -->|Kiểm tra quyền| UserService
+
+    %% Tương tác hướng ngoại
+    UserService -->|Gửi email xác nhận| EmailService
+    UserService -->|Gửi thông báo| NotificationService
 ```
