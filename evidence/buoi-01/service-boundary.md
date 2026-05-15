@@ -1,129 +1,107 @@
-# Service Boundary của nhóm
+# Service Boundary: Access Gate Service (Dịch vụ kiểm soát ra/vào)
 
 ## 1. Thông tin nhóm
 
-- Tên nhóm: Nhóm 4
-- Lớp: CNTT17-13
-- Thành viên:
-Đào Anh Dũng
-Trần Hiếu Nghĩa
-Bùi Khương Duy
-Trần Hải Nam
-- Service nhóm phụ trách: User Management Service
-- Sản phẩm tổng thể của lớp: Hệ thống microservices cho nền tảng thương mại điện tử
+- Tên nhóm: [Tên nhóm của bạn]
+- Lớp: [Lớp của bạn]
+- Service nhóm phụ trách: **Access Gate Service (A3/B3)**
+- Đề tài: Xây dựng dịch vụ kiểm soát ra/vào.
 
-## 2. Actor
+## 2. Actor (Đối tượng tương tác)
 
-Ai tương tác với hệ thống/service?
+- **Nhân viên / Cư dân**: Người cần thực hiện việc ra/vào qua cổng.
+- **Khách**: Người đăng ký ra vào tạm thời.
+- **Nhân viên bảo vệ**: Giám sát và xử lý các tình huống cổng không tự động mở.
+- **Hệ thống tự động (IoT)**: Các cảm biến và đầu đọc thẻ tại cổng.
 
-- Khách hàng (Customers): Đăng ký tài khoản, đăng nhập, cập nhật thông tin cá nhân
-- Quản trị viên (Admins): Quản lý tài khoản người dùng, xem báo cáo
-- Hệ thống khác (Other Services): Gọi API để xác thực người dùng
+## 3. System Boundary (Phạm vi hệ thống)
 
-## 3. System Boundary
+### Phần nhóm kiểm soát:
+- Logic xác thực quyền ra vào (Access Control Logic).
+- Quản lý trạng thái các cổng (Gate Status Management).
+- Xử lý các quy tắc (Rules) cho phép hoặc từ chối dựa trên định danh.
+- Lưu trữ lịch sử ra vào tạm thời trước khi đồng bộ về Analytics.
 
-Nhóm em xây phần nào?
+### Phần nhóm chỉ tích hợp:
+- **IoT Ingestion**: Tích hợp với phần cứng (Reader, Motor) qua service trung gian.
+- **AI Vision**: Nhận kết quả nhận diện khuôn mặt/biển số xe.
+- **Core Business**: Lấy danh sách nhân sự và lịch trình cho phép.
 
-Phần nhóm kiểm soát:
+## 4. Service Boundary (Trách nhiệm của Service)
 
-- Cơ sở dữ liệu người dùng (User Database)
-- Logic xử lý đăng ký và xác thực
-- API endpoints cho quản lý người dùng
+### Service CÓ trách nhiệm:
+- Nhận diện yêu cầu ra vào từ các nguồn (Thẻ, Khuôn mặt, Biển số).
+- Kiểm tra tính hợp lệ của yêu cầu dựa trên quy tắc từ Core Business.
+- Gửi lệnh điều khiển mở/đóng cổng.
+- Ghi nhận và báo cáo các sự cố tại cổng (Kẹt cổng, xâm nhập trái phép).
 
-Phần nhóm chỉ tích hợp:
-
-- Dịch vụ gửi email (Email Service) để gửi xác nhận đăng ký
-- Dịch vụ thanh toán (Payment Service) để liên kết tài khoản
-
-## 4. Service Boundary
-
-Service của nhóm có trách nhiệm gì?
-
-- Quản lý thông tin tài khoản người dùng (tạo, đọc, cập nhật, xóa)
-- Xác thực và ủy quyền người dùng
-- Phát hành và xác minh token JWT
-
-Service KHÔNG làm gì?
-
-- Không xử lý thanh toán trực tiếp
-- Không gửi email marketing
-- Không quản lý sản phẩm hoặc đơn hàng
+### Service KHÔNG làm gì:
+- Không trực tiếp quản lý hồ sơ nhân sự (do Core Business quản lý).
+- Không trực tiếp phân tích hình ảnh (do AI Vision quản lý).
+- Không trực tiếp lưu trữ video stream (do Camera Stream quản lý).
 
 ## 5. Input / Output
 
-### Input
+### Input (Lấy dữ liệu từ)
+- **IoT Ingestion**: Tín hiệu từ đầu đọc thẻ (Card ID), cảm biến hồng ngoại.
+- **AI Vision**: Thông tin định danh từ khuôn mặt hoặc biển số xe.
+- **Core Business**: Quy định quyền truy cập (Access Rules), danh sách đen (Blacklist).
 
-- Thông tin đăng ký người dùng (username, email, password)
-- Token xác thực cho các yêu cầu API
-- Dữ liệu cập nhật hồ sơ người dùng
+### Output (Trả dữ liệu cho)
+- **IoT Ingestion**: Lệnh mở cổng (Open Gate Command), lệnh đóng cổng, còi báo động.
+- **Notification**: Gửi thông báo khi có người lạ xâm nhập hoặc VIP đến.
+- **Analytics**: Dữ liệu nhật ký ra vào để tổng hợp báo cáo chuyên sâu.
+- **Core Business**: Cập nhật trạng thái điểm danh hoặc vị trí hiện tại của nhân sự.
 
-### Output
-
-- Thông tin người dùng (JSON response)
-- Token JWT sau khi đăng nhập thành công
-- Mã lỗi cho các trường hợp thất bại
-
-## 6. API dự kiến
+## 6. API dự kiến (Thiết kế mẫu)
 
 | Method | Endpoint | Mục đích |
 |---|---|---|
-| GET | /health | Kiểm tra trạng thái service |
-| POST | /users | Tạo tài khoản người dùng mới |
-| GET | /users/{id} | Lấy thông tin người dùng theo ID |
-| PUT | /users/{id} | Cập nhật thông tin người dùng |
-| DELETE | /users/{id} | Xóa tài khoản người dùng |
-| POST | /auth/login | Đăng nhập và nhận token |
-| POST | /auth/logout | Đăng xuất và hủy token |
+| POST | /gate/request-access | Nhận yêu cầu ra vào từ IoT/AI |
+| GET | /gate/{id}/status | Kiểm tra trạng thái hiện tại của cổng |
+| POST | /gate/{id}/command | Gửi lệnh điều khiển cổng thủ công |
+| GET | /gate/history | Xem lịch sử ra vào gần đây |
 
 ## 7. Phụ thuộc service khác
 
-Service này gọi đến service nào?
+### Service này gọi đến:
+- **Core Business**: Kiểm tra quyền truy cập của User.
+- **IoT Ingestion**: Gửi lệnh vật lý tới thiết bị.
+- **Notification**: Gửi cảnh báo khi có sự cố.
+- **Analytics**: Đẩy dữ liệu log ra vào.
 
-- Email Service: Để gửi email xác nhận đăng ký
-- Notification Service: Để gửi thông báo đẩy
+### Service khác gọi đến service này:
+- **IoT Ingestion**: Đẩy dữ liệu từ đầu đọc thẻ.
+- **AI Vision**: Đẩy kết quả nhận diện định danh.
+- **Core Business**: Cập nhật cấu hình hoặc danh sách quyền truy cập mới.
 
-Service nào gọi đến service này?
-
-- API Gateway: Chuyển tiếp các yêu cầu từ client
-- Order Service: Để lấy thông tin người dùng cho đơn hàng
-- Product Service: Để kiểm tra quyền truy cập sản phẩm
-
-## 8. Sơ đồ minh họa
-
-Có thể vẽ bằng Mermaid, draw.io, Ludichart hoặc ảnh chụp sơ đồ.
+## 8. Sơ đồ minh họa (Mermaid)
 
 ```mermaid
-flowchart TB
-    Customer[Khách hàng]
-    Admin[Quản trị viên]
-    OtherSystem[Hệ thống khác]
-    
-    %% Traefik là Gateway thực tế trong scripts/pull_all.sh
-    APIGateway[Traefik API Gateway]
+flowchart LR
+    User[Người dùng / Thiết bị truy cập]
+    IoT[IoT Ingestion Service]
+    Camera[Camera Stream Service]
+    AIVision[AI Vision Service]
+    AccessGate[Access Gate Service]
+    Core[Core Business Service]
+    Notify[Notification Service]
+    Analytics[Analytics Service]
 
-    subgraph UserBoundary [User Management Service Boundary]
-        UserService[User Management Service]
-        %% PostgreSQL là DB thực tế trong scripts/pull_all.sh
-        UserDB[(PostgreSQL Database)]
-        UserService -->|Lưu trữ dữ liệu| UserDB
-    end
+    User --> IoT
+    User --> Camera
 
-    OrderService[Order Service]
-    ProductService[Product Service]
-    EmailService[Email Service]
-    NotificationService[Notification Service]
+    IoT -->|Dữ liệu thiết bị ra/vào| AccessGate
+    Camera -->|Hình ảnh / video frame| AccessGate
 
-    %% Tương tác từ phía người dùng qua Gateway
-    Customer -->|Đăng ký / Đăng nhập| APIGateway
-    Admin -->|Quản lý tài khoản| APIGateway
-    APIGateway --> UserService
+    AccessGate -->|Gửi ảnh để xác minh| AIVision
+    AIVision -->|Kết quả nhận diện| AccessGate
 
-    %% Tương tác giữa các Service
-    OtherSystem -->|Xác thực| UserService
-    OrderService -->|Lấy thông tin user| UserService
-    ProductService -->|Kiểm tra quyền| UserService
+    AccessGate -->|Truy cập hợp lệ / bị từ chối| Core
+    AccessGate -->|Cảnh báo bất thường| Notify
 
-    %% Tương tác hướng ngoại
-    UserService -->|Gửi email xác nhận| EmailService
-    UserService -->|Gửi thông báo| NotificationService
+    AccessGate -.->|Không xử lý trực tiếp| Analytics
+
+    %% Styling cho service chính
+    style AccessGate fill:#f9f,stroke:#333,stroke-width:4px
 ```
